@@ -58,6 +58,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 class UserLoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
+    recaptcha_token = serializers.CharField()
 
     # def check_user(self, clean_data):
     #     user = authenticate(username=clean_data["email"],
