@@ -1,56 +1,17 @@
 import json
-from http.client import HTTPResponse
-
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse
-from django.template.context_processors import request
-from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate, login, logout, get_user_model
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Task, User
+from .models import Task
 from .serializer import TaskSerializer, UserLoginSerializer, UserRegisterSerializer, UserAddTasksSerializer, \
     UserSerializer
 from rest_framework.decorators import api_view
-from rest_framework.authtoken.models import Token
-# Create your views here.
 
-# @api_view(["GET"])
-# def get_data(request):
-#     tasks = Task.objects.all()
-#     serializers = TaskSerializer(tasks,many=True)
-#     return Response(serializers.data)
-
-
-# @csrf_exempt
-# def login_view(request):
-#     if request.method == 'POST':
-#         data = json.loads(request.body)
-#         username = data.get('username')
-#         password = data.get('password')
-#         user = authenticate(request, username=username, password=password)
-#
-#         if user is not None:
-#             login(request, user)
-#             return JsonResponse({'message': 'Login successful'}, status=200)
-#         else:
-#             return JsonResponse({'error': 'Invalid credentials'}, status=400)
-#     return JsonResponse({'error': 'POST request required'}, status=400)
-
-
-# @api_view(["GET"])
-# def get_user_data(request):
-#     print(f"request.user {request.user}")
-#     # if request.user.is_authenticated:
-#     user_tasks = Task.objects.all()
-#     tasks = list(user_tasks.values())
-#         # print(({'tasks':tasks, 'user':request.user}))
-#     return JsonResponse({'tasks':tasks, 'user':request.user.username})
-
+User = get_user_model()
 
 class UserTasksAPI(APIView):
     permission_classes = [IsAuthenticated]
@@ -66,10 +27,11 @@ class UserTasksAPI(APIView):
                          })
 
 class RegisterUserAPI(CreateAPIView):
-    permission_classes = (AllowAny,)
+    permission_classes = [AllowAny]
     serializer_class = UserRegisterSerializer
 
 class LoginAPI(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         data = request.data
         serializer = UserLoginSerializer(data=data)
@@ -78,18 +40,18 @@ class LoginAPI(APIView):
             password = serializer.data['password']
             user_obj = authenticate(username=username,password=password)
             if user_obj:
-                # token, _ = Token.objects.get_or_create(user=user_obj)
                 refresh = RefreshToken.for_user(user_obj)
 
                 return Response({
                     'refresh': str(refresh),
                     'access':str(refresh.access_token),
                 })
+            else:
+                return Response({'data':serializer.errors,
+                                 'message':"Invalid Credentials",
+                                 }, status=401)
 
-
-        return Response({'data':serializer.errors,
-                         'message':"Credentials Not Valid",
-                         }, status=401)
+        return Response(serializer.errors, status=400)
 
 
 class UserTasksByIdAPI(APIView):
@@ -122,6 +84,7 @@ class AddUserTasks(CreateAPIView):
 class LogoutAPI(APIView):
     def get(self, request):
         request.user.auth_token.delete()
+        logout(request)
         return Response({'message':"Logged Out Successfully"})
 
 
@@ -143,17 +106,6 @@ def add_data(request):
         serializer.save()
     return Response()
 
-# call function to import json file
-def import_json_data():
-    f = open('tasks.json', 'r')
-    data = json.load(f)
-    tasks = [Task(
-        task_id=item['id'],
-        title=item['title'],
-        label=item['label'],
-        status=item['status'],
-        priority=item['priority'],
-    ) for item in data]
-    Task.objects.bulk_create(tasks)
+
 
 

@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-x@&3zla@ywj7&51srt_b)i-h3*lmvf+3lyx+or)()g=a63w*it'
+SECRET_KEY = "django-insecure-x@&3zla@ywj7&51srt_b)i-h3*lmvf+3lyx+or)()g=a63w*it"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -37,12 +37,21 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'app',
-    'rest_framework',
-    'corsheaders',
-    'rest_framework.authtoken',
-    'rest_framework_simplejwt'
+    "django.contrib.sites",
+    # Third-party apps
+    "rest_framework",
+    "rest_framework.authtoken",
+    "rest_framework_simplejwt",
+    "corsheaders",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    # Local apps
+    "app",
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -53,6 +62,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'todo_app.urls'
@@ -136,18 +146,120 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 REST_FRAMEWORK = {
-    # 'DEFAULT_AUTHENTICATION_CLASSES': [
-    #     'rest_framework.authentication.TokenAuthentication',
-    # ],
-        'DEFAULT_AUTHENTICATION_CLASSES': [
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+}
 
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ]
+# JWT Settings
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    # 'ROTATE_REFRESH_TOKENS': False,
+    # 'BLACKLIST_AFTER_ROTATION': True,
+}
+
+# Allauth Settings
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_USERNAME_REQUIRED = False
+# cdokara@gmail.com
+GOOGLE_CLIENT_ID = "1035856167913-ud9a4gnm5amkmt2ea3ci3gsdkpia2jk2.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET = "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"
+
+# Social Auth Settings
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": [
+            "profile",
+            "email",
+        ],
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
+        'OAUTH_PKCE_ENABLED': True,
+        "APP": {
+            "client_id": GOOGLE_CLIENT_ID,  # Add your Google OAuth client ID here
+            "secret": GOOGLE_CLIENT_SECRET,  # Add your Google OAuth client secret here
+        },
+    }
+}
+SOCIALACCOUNT_STORE_TOKENS = True
+
+# REST Auth Settings
+REST_AUTH = {
+    "USE_JWT": True,
+    "JWT_AUTH_COOKIE": "jwt-auth",
+    "JWT_AUTH_REFRESH_COOKIE": "jwt-refresh-token",
+    "JWT_AUTH_HTTPONLY": False,
 }
 
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]  # Ensure trusted origins
 
-CSRF_TRUSTED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000']  # Ensure trusted origins
 
-CORS_ALLOW_ALL_ORIGINS = True
-AUTH_USER_MODEL = 'app.User'
+# CORS Settings
+CORS_ALLOW_ALL_ORIGINS = False  # More secure to whitelist specific origins
+CORS_ORIGIN_WHITELIST = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+CORS_ALLOW_CREDENTIALS = True
+
+# Authentication backends
+AUTHENTICATION_BACKENDS = (
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+)
+
+# Required for dj-rest-auth
+REST_USE_JWT = True
+JWT_AUTH_COOKIE = "jwt-auth"
+JWT_AUTH_REFRESH_COOKIE = "jwt-refresh-token"
+# Security Headers
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
+SECURE_REFERRER_POLICY = "same-origin"
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "SAMEORIGIN"
+
+# CORS Headers
+
+CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
+# Session and CSRF
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to access CSRF token
+
+# JWT Settings
+JWT_AUTH_SAMESITE = "Lax"
+JWT_AUTH_HTTPONLY = False  # Allow JavaScript to access JWT token
+
+
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
+RECAPTCHA_SECRET_KEY = "6LesLmYrAAAAAB0l9FG4xq7j6aE7Yf6M4gKM_tpl"
+RECAPTCHA_URL = "https://www.google.com/recaptcha/api/siteverify"
+GOOGLE_CLIENT_ID = "1035856167913-ud9a4gnm5amkmt2ea3ci3gsdkpia2jk2.apps.googleusercontent.com"

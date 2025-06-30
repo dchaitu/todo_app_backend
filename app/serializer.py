@@ -1,12 +1,12 @@
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
 
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from .models import Task
+from .utils import validate_recaptcha
 
 User = get_user_model()
 
@@ -20,6 +20,10 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = '__all__'
 
+    def create(self, validated_data):
+        user = User.objects.create_user(**validated_data)
+        return user
+
 
 
 
@@ -30,6 +34,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
                                    ,validators=[UniqueValidator(queryset=User.objects.all())])
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
+    recaptcha_token = serializers.CharField()
 
     class Meta:
         model = User
@@ -41,11 +46,16 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 "password": "Password didn't match"
             })
+
+        recaptcha_token = attrs.get('recaptcha_token')
+        if not validate_recaptcha(recaptcha_token):
+            raise serializers.ValidationError("Recaptcha validation failed")
         return attrs
 
     def create(self, clean_data):
 
         clean_data.pop('password2')
+        clean_data.pop('recaptcha_token')
 
         user_obj = User.objects.create(
             username=clean_data['username'],
@@ -60,13 +70,15 @@ class UserLoginSerializer(serializers.Serializer):
     password = serializers.CharField()
     recaptcha_token = serializers.CharField()
 
-    # def check_user(self, clean_data):
-    #     user = authenticate(username=clean_data["email"],
-    #                         password=clean_data["password"])
-    #
-    #     if not user:
-    #        raise ValidationError('User not Found')
-    #     return user
+    def validate(self, attrs):
+        recaptcha_token = attrs.get('recaptcha_token')
+        if not validate_recaptcha(recaptcha_token):
+            raise serializers.ValidationError("Recaptcha validation failed")
+        return attrs
+
+
+
+
 
 class UserAddTasksSerializer(serializers.ModelSerializer):
     class Meta:
@@ -95,3 +107,11 @@ class UserAddTasksSerializer(serializers.ModelSerializer):
         return task
 
 
+class GoogleLoginSerializer(serializers.Serializer):
+    """Serializer for Google OAuth login"""
+    token = serializers.CharField(required=True, help_text="Google ID token")
+
+    def validate_token(self, value):
+        if not value:
+            raise serializers.ValidationError("Google token is required")
+        return value
