@@ -1,4 +1,3 @@
-import json
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -6,12 +5,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Task
+from .models import Task, User
 from .serializer import TaskSerializer, UserLoginSerializer, UserRegisterSerializer, UserAddTasksSerializer, \
     UserSerializer
 from rest_framework.decorators import api_view
 
-User = get_user_model()
 
 class UserTasksAPI(APIView):
     permission_classes = [IsAuthenticated]
@@ -22,7 +20,8 @@ class UserTasksAPI(APIView):
         return Response({'tasks':tasks_serializer.data,
                          'user': {
                              "username":request.user.username,
-                             "email":request.user.email
+                             "email":request.user.email,
+                             "picture":request.user.picture
                             }
                          })
 
@@ -76,8 +75,7 @@ class UserTasksByIdAPI(APIView):
 class AddUserTasks(CreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = UserAddTasksSerializer
-        # serializer.save()
-        # return Response(serializer.data)
+
 
 
 

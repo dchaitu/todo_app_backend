@@ -1,5 +1,4 @@
 import json
-
 import requests
 import jwt
 from urllib.parse import urlencode
@@ -16,8 +15,6 @@ def validate_recaptcha(recaptcha_token):
 
     response = requests.post(url, data=data)
     result = response.json()
-    print(f"result is {result}")
-    print(f"data is {data}")
     return result['success']
 
 
@@ -44,19 +41,41 @@ def get_id_token_from_code(code):
     if response.ok:
         token_data = response.json()
         id_token = token_data.get("id_token")
-        return jwt.decode(id_token, verify=False, options={"verify_signature": False})
+        return jwt.decode(id_token, options={"verify_signature": False})
     else:
         print(f"Error: {response.status_code} - {response.json()}")
         return None
 
 
-def authenticate_or_create_user(user_email):
+def authenticate_or_create_user(user_email,id_token):
     try:
         user = User.objects.get(email=user_email)
     except User.DoesNotExist:
-        user = User(username=user_email, email=user_email)
-        user.save()
+        user = User.objects.create_user(username=user_email,
+                                        email=user_email,
+                                        first_name=id_token.get('given_name', ''),
+                                        last_name=id_token.get('family_name', ''),
+                                        picture=id_token.get('picture', ''))
     return user
+
+
+def exchange_code_for_token(code):
+    token_endpoint = "https://oauth2.googleapis.com/token"
+    client_id = settings.GOOGLE_CLIENT_ID
+    client_secret = settings.GOOGLE_CLIENT_SECRET
+    redirect_uri = "postmessage"
+
+    data = {
+        "code": code,
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code",
+    }
+
+
+    response = requests.post(token_endpoint, data=data)
+    return response.json()
 
 
 # call function to import json file
