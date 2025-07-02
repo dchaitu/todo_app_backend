@@ -51,11 +51,11 @@ def authenticate_or_create_user(user_email,id_token):
     try:
         user = User.objects.get(email=user_email)
     except User.DoesNotExist:
-        user = User.objects.create_user(username=user_email,
-                                        email=user_email,
-                                        first_name=id_token.get('given_name', ''),
-                                        last_name=id_token.get('family_name', ''),
-                                        picture=id_token.get('picture', ''))
+        user = User.objects.create(username=None,
+                                    email=user_email,
+                                    first_name=id_token.get('given_name', ''),
+                                    last_name=id_token.get('family_name', ''),
+                                    picture=id_token.get('picture', ''))
     return user
 
 

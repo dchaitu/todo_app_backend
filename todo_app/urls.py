@@ -17,11 +17,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
-from app.auth_views import LoginWithGoogle
+from app.auth_views import LoginWithGoogle, GoogleUsername
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("app.urls")),
     path("accounts/", include("allauth.urls")),
     path("rest-auth/google/", LoginWithGoogle.as_view(), name="google_login"),
+    path("set-username/", GoogleUsername.as_view(), name="google_username"),
 ]

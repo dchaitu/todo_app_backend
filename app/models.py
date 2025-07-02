@@ -40,3 +40,4 @@ class Task(models.Model):
 
 class User(AbstractUser):
     picture = models.CharField(max_length=200, default="https://ui.shadcn.com/avatars/03.png")
+    username = models.CharField(max_length=150, blank=True, null=True, unique=True)
